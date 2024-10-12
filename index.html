@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alarm Notifikasi</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f0f0;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .alarm-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #007BFF;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        input[type="time"], input[type="text"], button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #007BFF;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        .checkbox-group label {
+            width: 48%;
+            margin-top: 5px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        ul li {
+            background-color: #f8f9fa;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        ul li button {
+            background-color: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        ul li button:hover {
+            background-color: #c82333;
+        }
+
+        /* Responsif */
+        @media (max-width: 768px) {
+            .alarm-container, .alarm-list-container {
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="alarm-container">
+        <h1>Pengaturan Alarm</h1>
+
+        <label for="alarm-time">Pilih waktu alarm:</label>
+        <input type="time" id="alarm-time">
+
+        <label for="alarm-message">Pesan untuk notifikasi:</label>
+        <input type="text" id="alarm-message" placeholder="Masukkan pesan notifikasi...">
+
+        <h2>Pilih Hari:</h2>
+        <div class="checkbox-group">
+            <label><input type="checkbox" id="monday"> Senin</label>
+            <label><input type="checkbox" id="tuesday"> Selasa</label>
+            <label><input type="checkbox" id="wednesday"> Rabu</label>
+            <label><input type="checkbox" id="thursday"> Kamis</label>
+            <label><input type="checkbox" id="friday"> Jumat</label>
+            <label><input type="checkbox" id="saturday"> Sabtu</label>
+            <label><input type="checkbox" id="sunday"> Minggu</label>
+        </div>
+
+        <button onclick="addAlarm()">Tambah Alarm</button>
+    </div>
+
+    <!-- Daftar alarm dipindah ke bawah -->
+    <div class="alarm-list-container">
+        <h2>Daftar Alarm</h2>
+        <ul id="alarm-list"></ul>
+    </div>
+
+    <script>
+    	let alarms = JSON.parse(localStorage.getItem('alarms')) || [];
+
+        function addAlarm() {
+            const alarmTime = document.getElementById("alarm-time").value;
+            const alarmMessage = document.getElementById("alarm-message").value || "Ini waktunya untuk alarm kamu!";
+            const selectedDays = [];
+
+            // Cek hari yang dipilih
+            if (document.getElementById("monday").checked) selectedDays.push(1); // Senin
+            if (document.getElementById("tuesday").checked) selectedDays.push(2); // Selasa
+            if (document.getElementById("wednesday").checked) selectedDays.push(3); // Rabu
+            if (document.getElementById("thursday").checked) selectedDays.push(4); // Kamis
+            if (document.getElementById("friday").checked) selectedDays.push(5); // Jumat
+            if (document.getElementById("saturday").checked) selectedDays.push(6); // Sabtu
+            if (document.getElementById("sunday").checked) selectedDays.push(0); // Minggu
+
+            if (!alarmTime) {
+                alert("Pilih waktu yang valid!");
+                return;
+            }
+
+            if (selectedDays.length === 0) {
+                alert("Pilih setidaknya satu hari!");
+                return;
+            }
+
+            const [hours, minutes] = alarmTime.split(':');
+            const now = new Date();
+            let alarmDate = new Date(now);
+            alarmDate.setHours(hours);
+            alarmDate.setMinutes(minutes);
+            alarmDate.setSeconds(0);
+
+            // Mengatur alarm untuk hari yang ditentukan
+            let dayOfWeek = alarmDate.getDay();
+            let daysUntilNextAlarm = (7 + selectedDays[0] - dayOfWeek) % 7; // Hari yang ditentukan
+
+            if (daysUntilNextAlarm === 0 && alarmDate.getTime() < now.getTime()) {
+                // Jika alarm sudah terlewat, atur ke hari berikutnya
+                daysUntilNextAlarm = 7;
+            }
+
+            // Mengatur alarm ke hari yang tepat
+            alarmDate.setDate(alarmDate.getDate() + daysUntilNextAlarm);
+
+            // Menyimpan alarm ke array
+            const alarmObj = { time: alarmDate.getTime(), message: alarmMessage, days: selectedDays };
+            alarms.push(alarmObj);
+            localStorage.setItem('alarms', JSON.stringify(alarms));
+
+            displayAlarms();
+            setAlarmTimeout(alarmObj);
+        }
+
+        function displayAlarms() {
+            const alarmList = document.getElementById("alarm-list");
+            alarmList.innerHTML = '';
+
+            alarms.forEach((alarm, index) => {
+                const alarmDate = new Date(alarm.time);
+                const li = document.createElement('li');
+                li.textContent = `Alarm diset untuk ${alarmDate.toLocaleString()} - Pesan: "${alarm.message}"`;
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = "Hapus";
+                deleteButton.onclick = function() {
+                    removeAlarm(index);
+                };
+
+                li.appendChild(deleteButton);
+                alarmList.appendChild(li);
+            });
+        }
+
+        function removeAlarm(index) {
+            alarms.splice(index, 1);
+            localStorage.setItem('alarms', JSON.stringify(alarms));
+            displayAlarms();
+        }
+
+        function setAlarmTimeout(alarm) {
+    const now = Date.now();  // Menggunakan Date.now() agar bisa menyesuaikan dengan perubahan waktu sistem
+    const timeToAlarm = alarm.time - now;
+
+    console.log("Time to Alarm:", timeToAlarm, "Alarm Time:", new Date(alarm.time), "Current Time:", new Date(now));
+
+    if (timeToAlarm > 0) {
+        setTimeout(() => {
+            console.log("Triggering notification for:", alarm.message);
+            showNotification(alarm.message);
+
+            // Setelah alarm berbunyi, set alarm untuk minggu depan
+            const nextAlarmDate = new Date(alarm.time);
+            nextAlarmDate.setDate(nextAlarmDate.getDate() + 7);  // Set alarm untuk minggu depan
+
+            // Update alarm dengan waktu baru
+            alarm.time = nextAlarmDate.getTime();
+            localStorage.setItem('alarms', JSON.stringify(alarms));
+
+            // Set timeout lagi untuk alarm berikutnya
+            setAlarmTimeout(alarm);
+        }, timeToAlarm);
+    } else {
+        console.log("Alarm sudah terlewat atau waktu salah.");
+    }
+}
+
+        
+
+        function showNotification(message) {
+            if (Notification.permission === "granted") {
+                navigator.serviceWorker.ready.then(function(registration) {
+                    const options = {
+                        body: message,
+                        icon: 'https://via.placeholder.com/100',
+                        vibrate: [200, 100, 200],
+                    };
+                    registration.showNotification('Hai Hafidz!', options);
+                    
+	                // Tambahkan kode ini untuk refresh halaman setelah notifikasi muncul
+            setTimeout(function() {
+                location.reload(); // Refresh halaman
+            }, 2000); // Tunggu 5 detik setelah notifikasi muncul, kemudian refresh
+        });
+            } else if (Notification.permission !== "denied") {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        showNotification(message);
+                    }
+                });
+            }
+        }
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(function(reg) {
+                    console.log("Service Worker terdaftar dengan sukses.", reg);
+                })
+                .catch(function(err) {
+                    console.error("Service Worker gagal terdaftar. Kesalahan:", err);
+                });
+        } else {
+            console.error("Browser tidak mendukung Service Worker.");
+        }
+
+        function initAlarms() {
+            displayAlarms();
+            alarms.forEach(setAlarmTimeout);
+        }
+
+        initAlarms();
+    </script>
+</body>
+</html>
